@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".CentralDeudoresActivity">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Consultar Deudas por CUIT/CUIL"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/editTextCuit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Ingrese CUIT/CUIL de 11 dígitos"
+        android:inputType="number"
+        android:maxLength="11"
+        android:minHeight="48dp" />
+
+    <Button
+        android:id="@+id/buttonConsultarDeuda"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:text="Consultar" />
+
+    <TextView
+        android:id="@+id/textViewDeudaStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textColor="@android:color/holo_red_dark"
+        android:visibility="gone" 
+        tools:text="Mensaje de error" />
+
+    <!-- Contenedor de Resultados (inicialmente oculto) -->
+    <LinearLayout
+        android:id="@+id/layoutResultados"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <!-- Encabezado -->
+        <TextView
+            android:id="@+id/textViewHeaderInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="?attr/colorSurfaceContainer"
+            android:textColor="?attr/colorOnSurface"
+            android:padding="8dp"
+            tools:text="CUIT/CUIL: 20257610935\nDenominación: ZULIAN ARIEL ANTONIO\nPeríodo: AGOSTO 2025" />
+        
+        <!-- Tabla Principal -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewDeudas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+        <!-- Contenedor de Detalles (inicialmente oculto) -->
+        <LinearLayout
+            android:id="@+id/layoutDetallesAdicionales"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Información Adicional"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewDetalles"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

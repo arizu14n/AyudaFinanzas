@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".ChequesDenunciadosActivity">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Consultar Cheques Denunciados"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Seleccione Entidad Bancaria:" />
+
+    <Spinner
+        android:id="@+id/spinnerEntidades"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Número de Cheque:" />
+
+    <EditText
+        android:id="@+id/editTextNumeroCheque"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:minHeight="48dp" />
+
+    <Button
+        android:id="@+id/buttonConsultarCheque"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:text="Consultar" />
+
+    <!-- Contenedor de Resultados (para mostrar tabla o mensaje) -->
+    <LinearLayout
+        android:id="@+id/layoutChequeResultados"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <!-- Mensaje de Éxito (Cheque no denunciado) -->
+        <LinearLayout
+            android:id="@+id/layoutExito"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_clover" />
+
+            <TextView
+                android:id="@+id/textViewExitoMensaje"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAlignment="center"
+                android:textSize="16sp"
+                tools:text="¡Qué bien! Este cheque no ha sido denunciado." />
+        </LinearLayout>
+
+        <!-- Tabla de Denuncia (Cheque denunciado) -->
+        <LinearLayout
+            android:id="@+id/layoutDenuncia"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/textViewDenunciaHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                tools:text="Cheque N° 12345678 - Denunciado" />
+
+            <TextView
+                android:id="@+id/textViewDenunciaDetalle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:lineSpacingExtra="4dp"
+                tools:text="Banco: BANCO BBVA\nFecha: 2024-08-07\nSucursal: 123\nCuenta: 987654\nCausal: Denuncia por extravío" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Mensaje de Error de API -->
+    <TextView
+        android:id="@+id/textViewChequeStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textColor="@android:color/holo_red_dark"
+        android:visibility="gone"
+        tools:text="Mensaje de error" />
+
+</LinearLayout>
