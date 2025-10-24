@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.zulian.ayudafinanzas" />
-                  <option name="mobileSdkAppId" value="1:958759271683:android:adea07eb7c074ba06c7d36" />
-                  <option name="projectId" value="ayudafinanzas-5a657" />
-                  <option name="projectNumber" value="958759271683" />
+                  <option name="appId" value="PLACEHOLDER" />
+                  <option name="mobileSdkAppId" value="" />
+                  <option name="projectId" value="" />
+                  <option name="projectNumber" value="" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

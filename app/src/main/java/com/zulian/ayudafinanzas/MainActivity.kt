@@ -1,5 +1,6 @@
 package com.zulian.ayudafinanzas
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -7,11 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : AppCompatActivity() {
-
-    private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -23,13 +21,20 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Inicializar Firebase Auth
-        auth = FirebaseAuth.getInstance()
-
+        val btnUploadCheck = findViewById<Button>(R.id.btnUploadCheck)
+        val btnMyCheques = findViewById<Button>(R.id.btnMyCheques)
         val btnCentralDeudores = findViewById<Button>(R.id.btnCentralDeudores)
         val btnChequesDenunciados = findViewById<Button>(R.id.btnChequesDenunciados)
         val btnEstadisticasCambiarias = findViewById<Button>(R.id.btnEstadisticasCambiarias)
         val btnLogout = findViewById<Button>(R.id.buttonLogout)
+
+        btnUploadCheck.setOnClickListener {
+            startActivity(Intent(this, UploadCheckActivity::class.java))
+        }
+
+        btnMyCheques.setOnClickListener {
+            startActivity(Intent(this, ChequeListActivity::class.java))
+        }
 
         btnCentralDeudores.setOnClickListener {
             startActivity(Intent(this, CentralDeudoresActivity::class.java))
@@ -49,7 +54,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun signOut() {
-        auth.signOut()
+        val sharedPreferences = getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        sharedPreferences.edit().remove("jwt_token").apply()
+
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)

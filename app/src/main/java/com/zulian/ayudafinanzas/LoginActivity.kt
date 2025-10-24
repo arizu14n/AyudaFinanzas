@@ -1,41 +1,30 @@
 package com.zulian.ayudafinanzas
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.SignInButton
-import com.google.android.gms.common.api.ApiException
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
+import com.google.gson.Gson
+import com.zulian.ayudafinanzas.data.auth.ApiErrorResponse
+import com.zulian.ayudafinanzas.data.auth.AuthRequest
+import com.zulian.ayudafinanzas.data.auth.LoginResponse
+import com.zulian.ayudafinanzas.data.auth.RegisterResponse
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class LoginActivity : AppCompatActivity() {
 
-    private lateinit var auth: FirebaseAuth
     private lateinit var emailEditText: EditText
     private lateinit var passwordEditText: EditText
-    private lateinit var googleSignInClient: GoogleSignInClient
-
-    private val googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)!!
-                firebaseAuthWithGoogle(account.idToken!!)
-            } catch (e: ApiException) {
-                Toast.makeText(this, "Error de Google Sign In: ${e.statusCode}", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -47,95 +36,99 @@ class LoginActivity : AppCompatActivity() {
             insets
         }
 
-        auth = FirebaseAuth.getInstance()
+        sharedPreferences = getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
 
-        // Configurar Google Sign In
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
-        googleSignInClient = GoogleSignIn.getClient(this, gso)
+        if (sharedPreferences.getString("jwt_token", null) != null) {
+            navigateToMain()
+            return
+        }
 
         emailEditText = findViewById(R.id.editTextEmail)
         passwordEditText = findViewById(R.id.editTextPassword)
         val loginButton = findViewById<Button>(R.id.buttonLogin)
         val registerButton = findViewById<Button>(R.id.buttonRegister)
-        val googleSignInButton = findViewById<SignInButton>(R.id.buttonGoogleSignIn)
 
-        loginButton.setOnClickListener { signIn() }
-        registerButton.setOnClickListener { signUp() }
-        googleSignInButton.setOnClickListener { signInWithGoogle() }
+        loginButton.setOnClickListener { handleLogin() }
+        registerButton.setOnClickListener { handleRegister() }
     }
 
-    public override fun onStart() {
-        super.onStart()
-        val currentUser = auth.currentUser
-        if (currentUser != null) {
-            navigateToMain()
-        }
-    }
-
-    private fun signInWithGoogle() {
-        val signInIntent = googleSignInClient.signInIntent
-        googleSignInLauncher.launch(signInIntent)
-    }
-
-    private fun firebaseAuthWithGoogle(idToken: String) {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        auth.signInWithCredential(credential)
-            .addOnCompleteListener(this) {
-                if (it.isSuccessful) {
-                    Toast.makeText(this, "Login con Google exitoso.", Toast.LENGTH_SHORT).show()
-                    navigateToMain()
-                } else {
-                    Toast.makeText(this, "Error de autenticación con Firebase: ${it.exception?.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-    }
-
-    private fun signUp() {
-        val email = emailEditText.text.toString()
-        val password = passwordEditText.text.toString()
+    private fun handleRegister() {
+        val email = emailEditText.text.toString().trim()
+        val password = passwordEditText.text.toString().trim()
 
         if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Por favor, complete todos los campos.", Toast.LENGTH_SHORT).show()
+            showToast("Por favor, complete todos los campos.")
             return
         }
 
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this) {
-                if (it.isSuccessful) {
-                    Toast.makeText(this, "Registro exitoso.", Toast.LENGTH_SHORT).show()
-                    navigateToMain()
+        val authRequest = AuthRequest(email, password)
+        YourApiClient.apiService.registerUser(authRequest).enqueue(object : Callback<RegisterResponse> {
+            override fun onResponse(call: Call<RegisterResponse>, response: Response<RegisterResponse>) {
+                if (response.isSuccessful) {
+                    showToast("Registro exitoso. Por favor, inicie sesión.")
                 } else {
-                    Toast.makeText(this, "Error en el registro: ${it.exception?.message}", Toast.LENGTH_LONG).show()
+                    handleApiError(response)
                 }
             }
+
+            override fun onFailure(call: Call<RegisterResponse>, t: Throwable) {
+                showToast("Error de red: ${t.message}")
+            }
+        })
     }
 
-    private fun signIn() {
-        val email = emailEditText.text.toString()
-        val password = passwordEditText.text.toString()
+    private fun handleLogin() {
+        val email = emailEditText.text.toString().trim()
+        val password = passwordEditText.text.toString().trim()
 
         if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Por favor, complete todos los campos.", Toast.LENGTH_SHORT).show()
+            showToast("Por favor, complete todos los campos.")
             return
         }
 
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this) {
-                if (it.isSuccessful) {
-                    Toast.makeText(this, "Inicio de sesión exitoso.", Toast.LENGTH_SHORT).show()
-                    navigateToMain()
+        val authRequest = AuthRequest(email, password)
+        YourApiClient.apiService.loginUser(authRequest).enqueue(object : Callback<LoginResponse> {
+            override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                if (response.isSuccessful) {
+                    val token = response.body()?.token
+                    if (token != null) {
+                        saveToken(token)
+                        navigateToMain()
+                    } else {
+                        showToast("Respuesta de login inválida.")
+                    }
                 } else {
-                    Toast.makeText(this, "Error al iniciar sesión: ${it.exception?.message}", Toast.LENGTH_LONG).show()
+                    handleApiError(response)
                 }
             }
+
+            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+                showToast("Error de red: ${t.message}")
+            }
+        })
+    }
+
+    private fun saveToken(token: String) {
+        sharedPreferences.edit().putString("jwt_token", token).apply()
     }
 
     private fun navigateToMain() {
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)
         finish()
+    }
+
+    private fun <T> handleApiError(response: Response<T>) {
+        val errorBody = response.errorBody()?.string()
+        try {
+            val errorResponse = Gson().fromJson(errorBody, ApiErrorResponse::class.java)
+            showToast("Error: ${errorResponse.error}")
+        } catch (e: Exception) {
+            showToast("Error: ${response.code()} ${response.message()}")
+        }
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 }
