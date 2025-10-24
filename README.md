@@ -35,6 +35,6 @@ Esta Aplicación es un proyecto de prueba para la materia Programación 3, en el
 
 Haz clic en la imagen para ver un video de la aplicación en funcionamiento:
 
-[![Demostración de AyudaFinanzas](assets/ayudafinanzas.png)](https://youtu.be/CTOU1Ys8JMs)
+[![Demostración de AyudaFinanzas](./assets/ayudafinanzas.png)](https://youtu.be/CTOU1Ys8JMs)
 
 Muchas gracias por su atención...!!!
