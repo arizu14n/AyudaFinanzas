@@ -54,6 +54,12 @@ dependencies {
 
     // Glide for Image Loading
     implementation ("com.github.bumptech.glide:glide:4.16.0")
+    
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // ML Kit Text Recognition
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

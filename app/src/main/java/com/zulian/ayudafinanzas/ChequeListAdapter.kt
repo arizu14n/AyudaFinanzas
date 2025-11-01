@@ -1,5 +1,6 @@
 package com.zulian.ayudafinanzas
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -56,6 +57,12 @@ class ChequeListAdapter(
                 .load(cheque.imagenUrl)
                 .placeholder(R.drawable.ic_launcher_background) // Imagen de carga
                 .into(imageView)
+
+            imageView.setOnClickListener { // NUEVO
+                val intent = Intent(itemView.context, FullScreenImageActivity::class.java)
+                intent.putExtra(FullScreenImageActivity.EXTRA_IMAGE_URL, cheque.imagenUrl)
+                itemView.context.startActivity(intent)
+            }
 
             updateButton.setOnClickListener { onUpdateClick(cheque) }
             deleteButton.setOnClickListener { onDeleteClick(cheque) }
