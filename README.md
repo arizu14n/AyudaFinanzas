@@ -45,4 +45,10 @@ Haz clic en la imagen para ver un video de la aplicación en funcionamiento:
 
 [![Demostración de AyudaFinanzas](./assets/ayudafinanzas.png)](https://youtu.be/CTOU1Ys8JMs)
 
+MEJORAS:
+
+https://youtube.com/shorts/jSKULX6Tx1I?si=webUloSaHY3K3twP
+
+
+
 Muchas gracias por su atención...!!!
