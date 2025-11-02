@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Base64
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -12,19 +13,14 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import com.zulian.ayudafinanzas.data.check.CheckResponse
+import com.google.gson.Gson
 import com.zulian.ayudafinanzas.data.ChequeEntidad
 import com.zulian.ayudafinanzas.data.ChequeEntidadResponse
+import com.zulian.ayudafinanzas.data.check.CheckResponse
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -32,14 +28,13 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
-import java.util.regex.Pattern
 
 class UploadCheckActivity : AppCompatActivity() {
 
@@ -61,29 +56,23 @@ class UploadCheckActivity : AppCompatActivity() {
             imageUri = it
             previewImageView.setImageURI(it)
             previewImageView.visibility = View.VISIBLE
-            processImageWithMlKit(it)
+            processImageWithGemini(it)
         }
     }
 
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
-            imageUri?.let { 
+            imageUri?.let {
                 previewImageView.setImageURI(it)
                 previewImageView.visibility = View.VISIBLE
-                processImageWithMlKit(it)
+                processImageWithGemini(it)
             }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_upload_check)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
 
         nroChequeEditText = findViewById(R.id.editTextNroCheque)
         bancoSpinner = findViewById(R.id.spinnerBanco)
@@ -170,101 +159,73 @@ class UploadCheckActivity : AppCompatActivity() {
         }
     }
 
-    private fun processImageWithMlKit(uri: Uri) {
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        try {
-            val image = InputImage.fromFilePath(this, uri)
-            recognizer.process(image)
-                .addOnSuccessListener { visionText ->
-                    parseTextAndFillFields(visionText.text)
+    // --- GEMINI IMPLEMENTATION ---
+
+    private fun processImageWithGemini(uri: Uri) {
+        val prompt = "Analiza la imagen de este cheque y extrae el número de cheque (suele estar precedido por 'N°'), el importe (precedido por '$'), la fecha de pago (la fecha más lejana en el tiempo) y el nombre del librador. Devuelve un único objeto JSON con las claves: nro_cheque, importe, fecha_pago (en formato yyyy-MM-dd), y librador."
+
+        val imageBase64 = uriToBase64(uri)
+        if (imageBase64 == null) {
+            Toast.makeText(this, "No se pudo convertir la imagen.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val geminiRequest = GeminiRequest(
+            contents = listOf(
+                Content(parts = listOf(
+                    Part(text = prompt),
+                    Part(inlineData = InlineData(mimeType = "image/jpeg", data = imageBase64))
+                ))
+            )
+        )
+
+        GeminiApiClient.apiService.getChequeDetails(BuildConfig.GEMINI_API_KEY, geminiRequest).enqueue(object : Callback<GeminiResponse> {
+            override fun onResponse(call: Call<GeminiResponse>, response: Response<GeminiResponse>) {
+                if (response.isSuccessful) {
+                    val textResponse = response.body()?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: ""
+                    parseGeminiResponse(textResponse)
+                } else {
+                    Toast.makeText(this@UploadCheckActivity, "Error con Gemini: ${response.code()}", Toast.LENGTH_LONG).show()
                 }
-                .addOnFailureListener { e ->
-                    Toast.makeText(this, "Error al procesar la imagen: ${e.message}", Toast.LENGTH_LONG).show()
-                }
+            }
+
+            override fun onFailure(call: Call<GeminiResponse>, t: Throwable) {
+                Toast.makeText(this@UploadCheckActivity, "Fallo en la conexión con Gemini: ${t.message}", Toast.LENGTH_LONG).show()
+            }
+        })
+    }
+
+    private fun uriToBase64(uri: Uri): String? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
+            val byteArray = byteArrayOutputStream.toByteArray()
+            Base64.encodeToString(byteArray, Base64.NO_WRAP)
         } catch (e: IOException) {
             e.printStackTrace()
+            null
         }
     }
 
-    private fun parseTextAndFillFields(text: String) {
-        // --- Importe ---
-        val amountPattern = Pattern.compile("\\$\\s*([\\d.,]+)")
-        val matcherAmount = amountPattern.matcher(text)
-        if (matcherAmount.find()) {
-            try {
-                val amountStr = matcherAmount.group(1).replace(".", "").replace(",", ".")
-                val amount = amountStr.toDouble()
-                importeEditText.setText(String.format(Locale.US, "%.2f", amount))
-            } catch (e: NumberFormatException) { /* Ignorar */ }
-        }
+    private fun parseGeminiResponse(jsonString: String) {
+        try {
+            // Limpiar la respuesta de Gemini para obtener solo el JSON
+            val cleanedJson = jsonString.substringAfter("```json").substringBefore("```").trim()
+            val chequeDetails = Gson().fromJson(cleanedJson, ChequeDetails::class.java)
 
-        // --- Número de Cheque (mejorado) ---
-        val checkNumberPattern = Pattern.compile("N°\\s*([A-Z0-9-]+)", Pattern.CASE_INSENSITIVE)
-        val matcherCheckNumber = checkNumberPattern.matcher(text)
-        if (matcherCheckNumber.find()) {
-            nroChequeEditText.setText(matcherCheckNumber.group(1))
-        } else {
-             // Fallback para cheques que no tienen "N°"
-            val fallbackCheckPattern = Pattern.compile("\\b(\\d{8,12})\\b")
-            val fallbackMatcher = fallbackCheckPattern.matcher(text)
-            var lastFoundCheckNumber = ""
-            while (fallbackMatcher.find()) {
-                lastFoundCheckNumber = fallbackMatcher.group(1)
+            chequeDetails.nroCheque?.let { nroChequeEditText.setText(it) }
+            // Limpiar el importe para formato numérico estándar (punto decimal, sin miles)
+            chequeDetails.importe?.let {
+                val cleanedImporte = it.replace(".", "").replace(",", ".")
+                importeEditText.setText(cleanedImporte)
             }
-            if (lastFoundCheckNumber.isNotEmpty()) {
-                 nroChequeEditText.setText(lastFoundCheckNumber)
-            }
-        }
+            chequeDetails.fechaPago?.let { fechaEmisionEditText.setText(it) }
+            chequeDetails.librador?.let { libradorEditText.setText(it) }
 
-        // --- Fecha (mejorado para múltiples fechas) ---
-        val dates = mutableListOf<Date>()
-        val datePattern = Pattern.compile("(\\d{1,2})\\s+de\\s+([a-zA-Z]+)\\s+de\\s+(\\d{4})", Pattern.CASE_INSENSITIVE)
-        val matcherDate = datePattern.matcher(text)
-        while (matcherDate.find()) {
-            try {
-                val day = matcherDate.group(1).toInt()
-                val monthName = matcherDate.group(2).toLowerCase(Locale.ROOT)
-                val year = matcherDate.group(3).toInt()
-                val month = monthNameToNumber(monthName)
-                if (month > 0) {
-                    val calendar = Calendar.getInstance()
-                    calendar.set(year, month - 1, day)
-                    dates.add(calendar.time)
-                }
-            } catch (e: Exception) { /* Ignorar */ }
-        }
-        // Seleccionar la fecha más lejana (fecha de pago)
-        dates.maxOrNull()?.let {
-            val outputSdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            fechaEmisionEditText.setText(outputSdf.format(it))
-        }
-
-        // --- Librador (mejorado) ---
-        val drawerPattern = Pattern.compile("(?i)(SOCIEDAD CIVIL|S\\.R\\.L\\.|S\\.A\\.|S\\.A\\.S|SRL|SA)")
-        text.lines().forEach { line ->
-            val matcher = drawerPattern.matcher(line)
-            if (matcher.find()) {
-                libradorEditText.setText(line.trim())
-                return@forEach
-            }
-        }
-    }
-
-    private fun monthNameToNumber(monthName: String): Int {
-        return when (monthName.toLowerCase(Locale.getDefault())) {
-            "enero" -> 1
-            "febrero" -> 2
-            "marzo" -> 3
-            "abril" -> 4
-            "mayo" -> 5
-            "junio" -> 6
-            "julio" -> 7
-            "agosto" -> 8
-            "septiembre" -> 9
-            "octubre" -> 10
-            "noviembre" -> 11
-            "diciembre" -> 12
-            else -> 0
+        } catch (e: Exception) {
+            Toast.makeText(this, "No se pudo interpretar la respuesta de Gemini.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -302,6 +263,7 @@ class UploadCheckActivity : AppCompatActivity() {
         val banco = selectedBanco.denominacion.toRequestBody(MultipartBody.FORM)
         val librador = libradorEditText.text.toString().toRequestBody(MultipartBody.FORM)
         val fechaEmision = fechaEmisionEditText.text.toString().toRequestBody(MultipartBody.FORM)
+        // El importe ya está en formato numérico estándar gracias a parseGeminiResponse
         val importe = importeEditText.text.toString().toRequestBody(MultipartBody.FORM)
         val estado = selectedEstado.toRequestBody(MultipartBody.FORM)
 

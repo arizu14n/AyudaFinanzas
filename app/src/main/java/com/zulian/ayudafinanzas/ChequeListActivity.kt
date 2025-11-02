@@ -1,5 +1,6 @@
 package com.zulian.ayudafinanzas
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -11,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.zulian.ayudafinanzas.data.check.Check
 import com.zulian.ayudafinanzas.data.check.CheckResponse
 import retrofit2.Call
@@ -22,6 +24,7 @@ class ChequeListActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyTextView: TextView
     private lateinit var chequeAdapter: ChequeListAdapter
+    private lateinit var fabAddCheque: FloatingActionButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -35,8 +38,10 @@ class ChequeListActivity : AppCompatActivity() {
 
         recyclerView = findViewById(R.id.recyclerViewCheques)
         emptyTextView = findViewById(R.id.textViewEmptyList)
+        fabAddCheque = findViewById(R.id.fabAddCheque)
 
         setupRecyclerView()
+        setupFab()
     }
 
     override fun onResume() {
@@ -50,6 +55,12 @@ class ChequeListActivity : AppCompatActivity() {
             onDeleteClick = { cheque -> showDeleteDialog(cheque) }
         )
         recyclerView.adapter = chequeAdapter
+    }
+
+    private fun setupFab() {
+        fabAddCheque.setOnClickListener {
+            startActivity(Intent(this, UploadCheckActivity::class.java))
+        }
     }
 
     private fun fetchCheques() {

@@ -62,8 +62,12 @@ class BnaRatesActivity : AppCompatActivity() {
                     response.body()?.let {
                         val html = it.string()
                         val rates = parseBnaHtml(html)
-                        adapter.updateRates(rates)
-                        recyclerView.visibility = View.VISIBLE
+                        if (rates.isEmpty()) {
+                            showToast("Disculpa, no encontré valores para la fecha seleccionada.")
+                        } else {
+                            adapter.updateRates(rates)
+                            recyclerView.visibility = View.VISIBLE
+                        }
                     } ?: run {
                         showError()
                     }
@@ -117,23 +121,39 @@ class BnaRatesActivity : AppCompatActivity() {
     }
 
     private fun showDatePickerDialog() {
+        val today = Calendar.getInstance()
+
         val dateSetListener = DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
-            calendar.set(Calendar.YEAR, year)
-            calendar.set(Calendar.MONTH, month)
-            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-            fetchBnaRates(calendar.time)
+            val selectedDate = Calendar.getInstance()
+            selectedDate.set(Calendar.YEAR, year)
+            selectedDate.set(Calendar.MONTH, month)
+            selectedDate.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+
+            if (selectedDate.after(today)) {
+                showToast("¡Ups! Solo puedes elegir fechas de hoy o anteriores.")
+                return@OnDateSetListener
+            }
+
+            fetchBnaRates(selectedDate.time)
         }
 
-        DatePickerDialog(
+        val datePickerDialog = DatePickerDialog(
             this,
             dateSetListener,
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
-        ).show()
+        )
+
+        datePickerDialog.datePicker.maxDate = today.timeInMillis
+        datePickerDialog.show()
     }
 
     private fun showError() {
         Toast.makeText(this, "Error al cargar las cotizaciones", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 }
