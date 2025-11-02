@@ -5,6 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     tools:context=".UploadCheckActivity">
 
     <LinearLayout
@@ -54,7 +55,7 @@
             android:layout_marginTop="8dp"
             android:focusable="false"
             android:clickable="true"
-            android:hint="Fecha" />
+            android:hint="Fecha de Vencimiento" />
 
         <EditText
             android:id="@+id/editTextImporte"

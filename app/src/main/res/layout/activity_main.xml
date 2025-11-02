@@ -81,6 +81,14 @@
             android:layout_marginBottom="12dp"
             android:text="Cotizaciones BNA (Billete)"
             app:icon="@drawable/ic_bna" />
+            
+        <Button
+            android:id="@+id/btnDolarBlue"
+            style="@style/Widget.Material3.Button.Icon"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Dólar Blue / Financieros"
+            app:icon="@drawable/ic_dolar" />
 
     </LinearLayout>
 

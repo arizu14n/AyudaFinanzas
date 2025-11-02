@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
         val btnChequesDenunciados = findViewById<Button>(R.id.btnChequesDenunciados)
         val btnEstadisticasCambiarias = findViewById<Button>(R.id.btnEstadisticasCambiarias)
         val btnBnaRates = findViewById<Button>(R.id.btnBnaRates)
+        val btnDolarBlue = findViewById<Button>(R.id.btnDolarBlue)
         val btnLogout = findViewById<Button>(R.id.buttonLogout)
 
         btnUploadCheck.setOnClickListener {
@@ -51,6 +52,10 @@ class MainActivity : AppCompatActivity() {
 
         btnBnaRates.setOnClickListener {
             startActivity(Intent(this, BnaRatesActivity::class.java))
+        }
+
+        btnDolarBlue.setOnClickListener {
+            startActivity(Intent(this, DolarBlueActivity::class.java))
         }
 
         btnLogout.setOnClickListener {
