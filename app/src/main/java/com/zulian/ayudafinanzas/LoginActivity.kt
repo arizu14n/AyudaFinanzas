@@ -4,8 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +27,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var emailEditText: EditText
     private lateinit var passwordEditText: EditText
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var progressBar: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -45,6 +48,7 @@ class LoginActivity : AppCompatActivity() {
 
         emailEditText = findViewById(R.id.editTextEmail)
         passwordEditText = findViewById(R.id.editTextPassword)
+        progressBar = findViewById(R.id.progressBarLogin)
         val loginButton = findViewById<Button>(R.id.buttonLogin)
         val registerButton = findViewById<Button>(R.id.buttonRegister)
 
@@ -61,9 +65,11 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
+        showLoading(true)
         val authRequest = AuthRequest(email, password)
         YourApiClient.apiService.registerUser(authRequest).enqueue(object : Callback<RegisterResponse> {
             override fun onResponse(call: Call<RegisterResponse>, response: Response<RegisterResponse>) {
+                showLoading(false)
                 if (response.isSuccessful) {
                     showToast("Registro exitoso. Por favor, inicie sesión.")
                 } else {
@@ -72,6 +78,7 @@ class LoginActivity : AppCompatActivity() {
             }
 
             override fun onFailure(call: Call<RegisterResponse>, t: Throwable) {
+                showLoading(false)
                 showToast("Error de red: ${t.message}")
             }
         })
@@ -86,9 +93,11 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
+        showLoading(true)
         val authRequest = AuthRequest(email, password)
         YourApiClient.apiService.loginUser(authRequest).enqueue(object : Callback<LoginResponse> {
             override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                showLoading(false)
                 if (response.isSuccessful) {
                     val token = response.body()?.token
                     if (token != null) {
@@ -103,9 +112,14 @@ class LoginActivity : AppCompatActivity() {
             }
 
             override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+                showLoading(false)
                 showToast("Error de red: ${t.message}")
             }
         })
+    }
+
+    private fun showLoading(isLoading: Boolean) {
+        progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
     }
 
     private fun saveToken(token: String) {

@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,6 +48,7 @@ class UploadCheckActivity : AppCompatActivity() {
     private lateinit var selectImageButton: Button
     private lateinit var uploadButton: Button
     private lateinit var previewImageView: ImageView
+    private lateinit var progressBar: ProgressBar
 
     private var imageUri: Uri? = null
     private val entidades = mutableListOf<ChequeEntidad>()
@@ -83,10 +85,15 @@ class UploadCheckActivity : AppCompatActivity() {
         selectImageButton = findViewById(R.id.buttonSelectImage)
         uploadButton = findViewById(R.id.buttonUpload)
         previewImageView = findViewById(R.id.imageViewPreview)
+        progressBar = findViewById(R.id.progressBarUpload)
 
         setupListeners()
         setupEstadoSpinner()
         fetchEntidades()
+    }
+
+    private fun showLoading(isLoading: Boolean) {
+        progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
     }
 
     private fun setupListeners() {
@@ -104,8 +111,10 @@ class UploadCheckActivity : AppCompatActivity() {
     }
 
     private fun fetchEntidades() {
+        showLoading(true)
         ApiClient.apiService.getChequeEntidades().enqueue(object : Callback<ChequeEntidadResponse> {
             override fun onResponse(call: Call<ChequeEntidadResponse>, response: Response<ChequeEntidadResponse>) {
+                showLoading(false)
                 if (response.isSuccessful && response.body() != null) {
                     entidades.clear()
                     entidades.addAll(response.body()!!.results.sortedBy { it.denominacion })
@@ -118,6 +127,7 @@ class UploadCheckActivity : AppCompatActivity() {
             }
 
             override fun onFailure(call: Call<ChequeEntidadResponse>, t: Throwable) {
+                showLoading(false)
                 Toast.makeText(this@UploadCheckActivity, "Error de red: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         })
@@ -162,11 +172,13 @@ class UploadCheckActivity : AppCompatActivity() {
     // --- GEMINI IMPLEMENTATION ---
 
     private fun processImageWithGemini(uri: Uri) {
+        showLoading(true)
         val prompt = "Analiza la imagen de este cheque y extrae el número de cheque (suele estar precedido por 'N°'), el importe (precedido por '$'), la fecha de pago (la fecha más lejana en el tiempo) y el nombre del librador. Devuelve un único objeto JSON con las claves: nro_cheque, importe, fecha_pago (en formato yyyy-MM-dd), y librador."
 
         val imageBase64 = uriToBase64(uri)
         if (imageBase64 == null) {
             Toast.makeText(this, "No se pudo convertir la imagen.", Toast.LENGTH_SHORT).show()
+            showLoading(false)
             return
         }
 
@@ -181,6 +193,7 @@ class UploadCheckActivity : AppCompatActivity() {
 
         GeminiApiClient.apiService.getChequeDetails(BuildConfig.GEMINI_API_KEY, geminiRequest).enqueue(object : Callback<GeminiResponse> {
             override fun onResponse(call: Call<GeminiResponse>, response: Response<GeminiResponse>) {
+                showLoading(false)
                 if (response.isSuccessful) {
                     val textResponse = response.body()?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: ""
                     parseGeminiResponse(textResponse)
@@ -190,6 +203,7 @@ class UploadCheckActivity : AppCompatActivity() {
             }
 
             override fun onFailure(call: Call<GeminiResponse>, t: Throwable) {
+                showLoading(false)
                 Toast.makeText(this@UploadCheckActivity, "Fallo en la conexión con Gemini: ${t.message}", Toast.LENGTH_LONG).show()
             }
         })
@@ -240,6 +254,7 @@ class UploadCheckActivity : AppCompatActivity() {
             return
         }
 
+        showLoading(true)
         // --- Compresión de Imagen ---
         val compressedFile = try {
             val inputStream = contentResolver.openInputStream(currentImageUri)
@@ -253,6 +268,7 @@ class UploadCheckActivity : AppCompatActivity() {
         } catch (e: IOException) {
             e.printStackTrace()
             Toast.makeText(this, "Error al comprimir la imagen.", Toast.LENGTH_SHORT).show()
+            showLoading(false)
             return
         }
 
@@ -273,6 +289,7 @@ class UploadCheckActivity : AppCompatActivity() {
         AuthApiClient.getApiService(this).uploadCheck(nro, banco, librador, fechaEmision, importe, estado, imagePart)
             .enqueue(object : Callback<CheckResponse> {
                 override fun onResponse(call: Call<CheckResponse>, response: Response<CheckResponse>) {
+                    showLoading(false)
                     if (response.isSuccessful) {
                         Toast.makeText(this@UploadCheckActivity, "Cheque registrado exitosamente.", Toast.LENGTH_LONG).show()
                         finish()
@@ -282,6 +299,7 @@ class UploadCheckActivity : AppCompatActivity() {
                 }
 
                 override fun onFailure(call: Call<CheckResponse>, t: Throwable) {
+                    showLoading(false)
                     Toast.makeText(this@UploadCheckActivity, "Error de red: ${t.message}", Toast.LENGTH_LONG).show()
                 }
             })
