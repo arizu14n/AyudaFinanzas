@@ -49,7 +49,7 @@ MEJORAS:
 
 https://youtube.com/shorts/jSKULX6Tx1I?si=webUloSaHY3K3twP
 
-Si prefieres una presentación: --> <iframe src="https://gamma.app/embed/i6ylzy5vsbs7ftz" style="width: 700px; max-width: 100%; height: 450px" allow="fullscreen" title="Ayuda Finanzas"></iframe>
+Si prefieres una presentación: --> https://gamma.app/docs/Ayuda-Finanzas-i6ylzy5vsbs7ftz
 
 
 
